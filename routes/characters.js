@@ -2,7 +2,7 @@ const createError = require('http-errors');
 const express = require('express');
 const router = express.Router();
 
-const { db } = require('../db');
+const { db } = require('../modules/db');
 
 router.get('/', async function (req, res, next) {
     const characterId = req.query.characterId;

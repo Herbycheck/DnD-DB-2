@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 
-const { db } = require('../db');
+const { db } = require('../modules/db');
 
 router.get('/', async function (req, res, next) {
 	let userId = req.query.userId == undefined ? null : req.query.userId;
