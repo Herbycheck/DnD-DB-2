@@ -3,110 +3,131 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 
-const { db } = require('../modules/db');
+const Users = require('../modules/users');
+
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 router.get('/', async function (req, res, next) {
-	let userId = req.query.userId == undefined ? null : req.query.userId;
-	let nickname = req.query.nickname == undefined ? null : req.query.nickname;
-
-	if (userId == null && nickname == null) return res.status(404).send({ message: "No userId or nickname defined" });
-
 	try {
-		let user = await db.select('id', 'nickname', 'email')
-			.from('users')
-			.where('users.id', userId)
-			.orWhere('users.nickname', nickname)
-			.first();
+		// Extract the page and page size from the request query parameters
+		const page = req.query.page || 1;
+		const pageSize = req.query.pageSize || 10;
 
+		// List the users
+		const users = await Users.listUsers(page, pageSize);
+
+		// Respond with the list of users
+		res.json(users);
+	} catch (error) {
+		// Handle any errors
+		console.error(error);
+		return next(createError(500, 'An error occurred while trying to list the users'));
+	}
+});
+
+
+router.get('/:id', async function (req, res, next) {
+	try {
+		// Validate the 'id' route parameter
+		if (!uuidRegex.test(req.params.id)) {
+			return next(createError(400, "Invalid user id"));
+		}
+
+		// Retrieve the user from the database
+		const user = await Users.getUserById(req.params.id);
+
+		// If no user is found, return a 404 error
+		if (!user) {
+			return next(createError(404, "User not found"));
+		}
+
+		// Respond with the user data as a JSON object
 		res.json(user);
 
 	} catch (error) {
-		console.error(error)
-		next(createError(500, 'Database error.'));
+		// Handle any other errors
+		return next(createError(500, "An error occurred while trying to retrieve the user"));
 	}
 });
 
-router.patch('/', async function (req, res, next) {
-	let userId = req.query.userId;
 
-	if (userId == undefined) return res.status(404).send({ message: "No userId defined" });
-
-	let user = {};
-
-	if (req.body.nickname != undefined) {
-		user.nickname = req.body.nickname;
-	}
-
-	if (req.body.email != undefined) {
-		user.email = req.body.email;
-	}
-
-	if (req.body.password != undefined) {
-		user.password = await bcrypt.hash(password, 10);
-	}
-
+router.patch('/:id', async function (req, res, next) {
 	try {
-		let response = await db('users').where({ id: userId }).update(user, ["id", "nickname", "email"])
-
-		res.json(response[0]);
-
-	} catch (error) {
-		console.error(error);
-
-		if ((error.constraint)) {
-			return next(createError(409, error.constraint));
+		// Create the user object with the updated properties
+		const user = {};
+		if (req.body.nickname) {
+			user.nickname = req.body.nickname;
+		}
+		if (req.body.email) {
+			user.email = req.body.email;
+		}
+		if (req.body.password) {
+			user.password = await bcrypt.hash(req.body.password, 10);
 		}
 
-		return next(createError(500, 'Database error'));
+		// Update the user in the database
+		const updatedUser = await Users.updateUser(req.params.id, user);
+
+		// Respond with the updated user data as a JSON object
+		res.json(updatedUser);
+	} catch (error) {
+		// Handle any errors
+		if (error.constraint === 'users_nickname_unique') {
+			return next(createError(409, 'The username you requested is already in use'));
+		}
+
+		console.error(error);
+		return next(createError(500, 'An error occurred while trying to update the user'));
 	}
-
-
 });
+
 
 router.post('/', async function (req, res, next) {
-	let nickname = req.body.nickname;
-	let password = req.body.password;
-	let mail = req.body.email;
-
-	if (nickname == undefined || password == undefined || mail == undefined) return next(createError(400));
-
-	password = await bcrypt.hash(password, 10);
-
 	try {
-		let user = await db
-			.insert({ nickname: nickname, password: password, email: mail }, ["id", "nickname", "email"])
-			.into('users');
+		// Hash the password
+		const password = await bcrypt.hash(req.body.password, 10);
 
+		// Create the new user object
+		const newUser = { nickname: req.body.nickname, email: req.body.nickname, password };
+
+		// Create the user in the database
+		const user = await Users.createUser(newUser);
+
+		// Respond with the new user data as a JSON object
 		res.json(user);
-
 	} catch (error) {
+		// Handle any errors
+		if (error.constraint === 'users_nickname_unique') {
+			return next(createError(409, 'The username you requested is already in use'));
+		}
 		console.error(error);
+		return next(createError(500, "An error occurred while trying to create a new user"));
+	}
+});
 
-		if (error.constraint == 'users_nickname') {
-			return next(createError(409, 'Username already in use!'))
+router.delete('/:id', async function (req, res, next) {
+	try {
+		// Extract the id from the request parameters
+		const id = req.params.id;
+		if (!id) {
+			throw createError(400, 'No id specified');
 		}
 
-		return next(createError(500, "Database error"));
+		// Validate the id
+		if (!uuidRegex.test(id)) {
+			throw createError(400, 'Invalid id');
+		}
 
-	}
+		// Delete the user
+		await Users.deleteUser(id);
 
-});
-
-router.delete('/', async function (req, res, next) {
-	let userId = req.query.userId;
-
-	if (userId == undefined) return next(createError(400, "No userId specified"));
-
-
-	try {
-		await db('users')
-			.where('id', userId)
-			.del();
+		// Respond with a success message
+		res.status(200).send({ message: 'User successfully deleted.' });
 	} catch (error) {
-		return next(createError(500, "Database error"))
+		// Handle any errors
+		console.error(error);
+		return next(createError(500, 'An error occurred while trying to delete the user'));
 	}
-
-	res.status(200).send({ message: "User successfully deleted." })
-
 });
+
 module.exports = router;
