@@ -34,7 +34,7 @@ router.get('/:id', async function (req, res, next) {
 		}
 
 		// Retrieve the user from the database
-		const user = await Users.getUserById(req.params.id);
+		const user = await Users.getUser(req.params.id);
 
 		// If no user is found, return a 404 error
 		if (!user) {

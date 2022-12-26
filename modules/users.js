@@ -1,6 +1,6 @@
 const { db } = require("./db");
 
-async function getUserById(id) {
+async function getUser(id) {
 	try {
 		// Get the user in the database
 		let user = await db.select('id', 'nickname', 'email')
@@ -77,4 +77,4 @@ async function listUsers(page, pageSize) {
 }
 
 
-module.exports = { getUserById, updateUser, createUser, deleteUser, listUsers }
+module.exports = {getUser, updateUser, createUser, deleteUser, listUsers }
