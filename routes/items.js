@@ -125,7 +125,7 @@ router.post('/properties/', async function (req, res, next) {
 	}
 })
 
-router.get('/properties/:id', async function (req, res, next) {
+router.get('/properties/id/:id', async function (req, res, next) {
 	try {
 		let id = req.params.id == undefined ? null : req.params.id;
 
@@ -144,7 +144,7 @@ router.get('/properties/:id', async function (req, res, next) {
 
 });
 
-router.put('/properties/:id', async function (req, res, next) {
+router.put('/properties/id/:id', async function (req, res, next) {
 	let id = req.params.id == undefined ? null : req.params.id;
 
 	if (id == null) return next(createError(400, "No id specified"));
@@ -176,7 +176,7 @@ router.put('/properties/:id', async function (req, res, next) {
 
 })
 
-router.delete('/properties/:id', async function (req, res, next) {
+router.delete('/properties/id/:id', async function (req, res, next) {
 	let propertyId = req.query.id;
 
 	if (propertyId == undefined) return next(createError(400, "No id specified"));
