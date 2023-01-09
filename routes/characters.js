@@ -2,186 +2,117 @@ const createError = require('http-errors');
 const express = require('express');
 const router = express.Router();
 
-const { db } = require('../modules/db');
+const Characters = require('../modules/characters');
 
-router.get('/', async function (req, res, next) {
-    const characterId = req.query.characterId;
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    if (characterId == null) return next(createError(400, 'No id defined'));
+router.get('/user/:id', async function (req, res, next) {
+	try {
+		const ownerId = req.params.id;
 
-    try {
-        let character = await db.select()
-            .from('characters')
-            .where('characters.id', characterId)
-            .first();
+		if (!uuidRegex.test(ownerId)) {
+			return next(createError(400, 'Invalid user id'));
+		}
+		const characters = await Characters.listUserCharacters(ownerId);
 
-        if (character == undefined) return next(createError(404));
+		return res.json(characters);
 
-        // Combat
-        character.combat = await db.select()
-            .from('characters_combat')
-            .where('character_id', character.id)
-            .first();
-
-        delete character.combat.character_id;
-
-        // Skills
-        character.skills = await db.select()
-            .from('characters_skills')
-            .where('character_id', character.id)
-            .first();
-
-        delete character.skills.character_id;
-
-        // Skill proficiencies
-        character.skill_proficiencies = await db.select()
-            .from('characters_skills_proficiencies')
-            .where('character_id', character.id)
-            .first();
-
-        delete character.skill_proficiencies.character_id;
-
-        // Character details (background)
-        character.details = await db.select()
-            .from('characters_details')
-            .where('character_id', character.id)
-            .first();
-
-        delete character.details.character_id;
-
-        // Money
-        character.money = await db.select()
-            .from('characters_money')
-            .where('character_id', character.id)
-            .first();
-
-        delete character.money.character_id;
-
-
-        // Proficiencies
-        character.proficiencies = await db.select('proficiencies.id', 'proficiencies.name', 'proficiencies.type')
-            .from('characters_proficiencies')
-            .innerJoin('proficiencies', 'characters_proficiencies.proficiency_id', 'proficiencies.id')
-            .where('character_id', character.id);
-
-
-        // Traits
-        character.traits = await db.select('traits.id', 'traits.name', 'traits.description')
-            .from('characters_traits')
-            .innerJoin('traits', 'characters_traits.trait_id', 'traits.id')
-            .where('character_id', character.id);
-
-            
-        // Items
-        character.items = await db.select('items.name', 'items.id', 'characters_items.amount', 'characters_items.equipped')
-            .from('characters_items')
-            .innerJoin('items', 'characters_items.item_id', 'items.id')
-            .where('character_id', character.id);
-
-        return res.json(character);
-
-    } catch (error) {
-        console.error('Error when looking for a character:');
-        console.error(error);
-
-        if (error.routine == 'string_to_uuid') {
-            return next(createError(400, 'Invalid character id'));
-        }
-
-        return next(createError(500));
-
-    }
+	} catch (error) {
+		return (next(createError(500, 'An error occurred while trying to list characters')));
+	}
 });
 
 router.post('/', async function (req, res, next) {
-    try {
-        let response = await db.transaction(async trx => {
-            let character = req.body.character;
+	try {
+		let character = req.body;
 
-            character.id = await trx('characters').insert({
-                name: character.name,
-                owner_id: character.owner_id,
-                level: character.level,
-                class: character.class,
-                race: character.race,
-                background: character.background,
-                alignment: character.alignment,
-                xp: character.xp
-            }, ['id']);
+		const newCharacter = await Characters.createCharacter(character);
 
-            character.id = character.id[0].id;
+		res.json(newCharacter)
 
-            // Combat
-            await trx('characters_combat').insert({
-                character_id: character.id,
-                ...character.combat
-            });
+	} catch (error) {
+		console.error(error);
 
-            // Skills
-            await trx('characters_skills').insert({
-                character_id: character.id,
-                ...character.skills
-            });
+		if (error.constraint == 'owner') {
+			return next(createError(400, 'Owner ID not found'))
+		}
 
-            // Skill proficiencies
-            await trx('characters_skills_proficiencies').insert({
-                character_id: character.id,
-                ...character.skill_proficiencies
-            });
-
-            // Character details (background)
-            await trx('characters_details').insert({
-                character_id: character.id,
-                ...character.details
-            });
-
-            // Money
-            await trx('characters_money').insert({
-                character_id: character.id,
-                ...character.money
-            });
-
-            // Proficiencies
-            let proficiencies = character.proficiencies.map(x => ({ ...x, character_id: character.id }));
-            await trx('characters_proficiencies').insert(proficiencies);
-
-            // Traits
-            let traits = character.traits.map(x => ({ ...x, character_id: character.id }));
-            await trx('characters_traits').insert(traits);
-
-            // Items
-            let items = character.items.map(x => ({ ...x, character_id: character.id }));
-            await trx('characters_items').insert(items);
-
-            return character;
-
-        });
-
-        res.json(response);
-
-    } catch (error) {
-        console.error(error);
-
-        if (error.constraint == 'owner') {
-            return next(createError(400, 'Owner ID not found'))
-        }
-
-        return next(createError(500));
-    };
+		return next(createError(500));
+	};
 
 });
 
+router.get('/id/:id', async function (req, res, next) {
+
+	if (!uuidRegex.test(req.params.id)) {
+		return next(createError(400, "Invalid character id"));
+	}
+
+	try {
+		const character = await Characters.getCharacter(req.params.id);
+
+		if (!character) {
+			return next(createError(404, "Character not found"))
+		}
+
+		res.json(character);
+
+	} catch (error) {
+		console.error(error);
+
+		return next(createError(500, "An error occurred while trying to retrieve the character"));
+
+	}
+});
+
+router.put('/id/:id', async function (req, res, next) {
+	try {
+		let character = req.body;
+
+		let characterId = req.params.id;
+
+		if (!uuidRegex.test(characterId)) {
+			return next(createError(400, "Invalid character id"));
+		}
+
+		const updatedCharacter = await Characters.updateCharacter({ id: characterId, ...character })
+
+		return res.json(updatedCharacter);
+
+	} catch (error) {
+		console.error(error);
+
+		return next(createError(500, 'An error occurred while trying to update a character'))
+	}
+
+});
+
+router.get('/traits', async function (req, res, next) {
+	// Extract the page and page size from the request query parameters
+	const page = req.query.page || 1;
+	const pageSize = req.query.pageSize || 10;
+
+	try {
+		const traits = await Characters.listTraits(page, pageSize)
+
+		return res.json(traits)
+	} catch (error) {
+		console.error(error);
+		return next(createError(500));
+	}
+})
+
 router.post('/traits', async function (req, res, next) {
+	try {
+		const newTrait = Characters.createTrait(req.body);
 
-    try {
-        let response = await db('traits').insert(req.body, ["id", "name", "description"])
+		res.json(newTrait);
 
-        return res.json(response);
-    } catch (error) {
-        console.error(error);
+	} catch (error) {
+		console.error(error);
 
-        return next(createError(500));
-    }
+		return next(createError(500));
+	}
 
 });
 module.exports = router
