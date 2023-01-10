@@ -104,7 +104,7 @@ router.get('/traits', async function (req, res, next) {
 
 router.post('/traits', async function (req, res, next) {
 	try {
-		const newTrait = Characters.createTrait(req.body);
+		const newTrait = await Characters.createTrait(req.body);
 
 		res.json(newTrait);
 
