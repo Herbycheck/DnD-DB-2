@@ -253,4 +253,19 @@ async function listTraits(pageNumber = 1, pageSize = 10) {
 	return items;
 }
 
-module.exports = { listUserCharacters, getCharacter, updateCharacter, createCharacter, listTraits, createTrait }
+async function listProficiencies(pageNumber = 1, pageSize = 10) {
+	// Calculate the offset based on the page number and page size
+	const offset = (pageNumber - 1) * pageSize;
+	// Query the database, using the offset and limit to implement paging
+	const items = await db.select().from('proficiencies').limit(pageSize).offset(offset);
+	// Return the page of items
+	return items;
+}
+
+async function createProficiency(proficiency) {
+	let newTrait = await db('proficiencies').insert(proficiency, ["id", "name", "type"])
+
+	return newTrait;
+}
+
+module.exports = { listUserCharacters, getCharacter, updateCharacter, createCharacter, listTraits, createTrait, listProficiencies, createProficiency }

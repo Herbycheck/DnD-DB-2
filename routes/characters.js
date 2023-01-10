@@ -115,4 +115,34 @@ router.post('/traits', async function (req, res, next) {
 	}
 
 });
+
+router.get('/proficiencies', async function (req, res, next) {
+	// Extract the page and page size from the request query parameters
+	const page = req.query.page || 1;
+	const pageSize = req.query.pageSize || 10;
+
+	try {
+		const proficiencies = await Characters.listProficiencies(page, pageSize)
+
+		return res.json(proficiencies)
+	} catch (error) {
+		console.error(error);
+		return next(createError(500));
+	}
+});
+
+router.post('/proficiencies', async function (req, res, next) {
+	try {
+		const newProficiency = await Characters.createProficiency(req.body);
+
+		res.json(newProficiency);
+
+	} catch (error) {
+		console.error(error);
+
+		return next(createError(500));
+	}
+
+});
+
 module.exports = router
