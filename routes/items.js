@@ -10,9 +10,10 @@ router.get('/', async function (req, res, next) {
 	// Extract the page and page size from the request query parameters
 	const page = req.query.page || 1;
 	const pageSize = req.query.pageSize || 10;
+	const searchQuery = req.query.search_query;
 
 	try {
-		let items = await Items.listItems(page, pageSize)
+		let items = await Items.listItems(page, pageSize, searchQuery)
 
 		return res.json(items)
 	} catch (error) {
@@ -35,24 +36,6 @@ router.post('/', async function (req, res, next) {
 		return next(createError(500));
 	};
 
-});
-
-router.get('/search/', async function (req, res, next) {
-	// Extract the page and page size from the request query parameters
-	const page = req.query.page || 1;
-	const pageSize = req.query.pageSize || 10;
-	const searchQuery = req.query.search_query;
-
-	if(!searchQuery) return next(createError(400, "No search query provided"));
-
-	try {
-		let items = await Items.findItem(searchQuery, page, pageSize)
-
-		return res.json(items)
-	} catch (error) {
-		console.error(error);
-		return next(createError(500));
-	}
 });
 
 router.get('/id/:id/', async function (req, res, next) {

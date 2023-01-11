@@ -150,32 +150,26 @@ async function createItem(item) {
 	}
 }
 
-async function listItems(pageNumber = 1, pageSize = 10) {
-	try {
-		// Calculate the offset based on the page number and page size
-		const offset = (pageNumber - 1) * pageSize;
-		// Query the database, using the offset and limit to implement paging
-		const items = await db.select().from('items').limit(pageSize).offset(offset);
-		// Return the page of items
-		return items;
+async function listItems(pageNumber = 1, pageSize = 10, searchQuery = "") {
+    // calculate the offset based on the page number and page size
+    const offset = (pageNumber - 1) * pageSize;
+    // get total number of rows that match the search query 
+    const total = await db('items').whereILike('name', '%' + searchQuery + '%').count()
 
-	} catch (error) {
-		throw error;
-	}
+    //query the items table based on the search query, limit the number of rows to the page size and offset
+    const items = await db.select().from('items')
+    .whereILike('name', '%' + searchQuery + '%')
+    .limit(pageSize)
+    .offset(offset);
+
+    //return the items and total
+    return {
+        items,
+        total : total[0].count
+    }
 }
 
-async function findItem(searchQuery, pageNumber = 1, pageSize = 10) {
-	try {
-		// Calculate the offset based on the page number and page size
-		const offset = (pageNumber - 1) * pageSize;
-		// Query the database, using the offset and limit to implement paging
-		let items = await db.select().from('items').whereILike('name', '%' + searchQuery + '%').limit(pageSize).offset(offset);
 
-		return items;
-	} catch (error) {
-		throw error;
-	}
-}
 
 async function listProperties(pageNumber = 1, pageSize = 10) {
 	try {
@@ -230,4 +224,4 @@ async function updateProperty(property) {
 	}
 }
 
-module.exports = { getItem, deleteItem, createItem, listItems, listProperties, getProperty, createProperty, updateProperty, findItem }
+module.exports = { getItem, deleteItem, createItem, listItems, listProperties, getProperty, createProperty, updateProperty }
