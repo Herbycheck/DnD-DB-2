@@ -57,13 +57,31 @@ router.get('/id/:id/', async function (req, res, next) {
 
 });
 
+router.put('/id/:id', async function (req, res, next) {
+	try {
+		let id = req.params.id;
+		if (!id) return next(createError(400, 'No item id specified.'));
+		if (!uuidRegex.test(id)) return next(createError(400, "Invalid item id"));
+
+		const updatedItem = await Items.updateItem(req.body);
+
+		return res.json(updatedItem);
+
+	} catch (error) {
+		console.error(error);
+		return next(createError(500, 'An error occurred while trying to update an item.'))
+	}
+})
+
 router.delete('/id/:id/', async function (req, res, next) {
 	try {
 		let id = req.params.id;
 
 		if (!id) return next(createError(400, "No itemId specified"));
 
-		Items.deleteItem(id);
+		if (!uuidRegex.test(id)) return next(createError(400, "Invalid item id"));
+
+		await Items.deleteItem(id);
 
 		res.status(200).send({ message: "Item successfully deleted." })
 

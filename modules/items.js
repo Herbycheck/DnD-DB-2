@@ -9,7 +9,7 @@ async function getItem(id) {
 
 		if (item == undefined) return next(createError(404))
 
-		item.properties = await db.select('name', 'details', 'description')
+		item.properties = await db.select('item_properties.property_id', 'name', 'details', 'description')
 			.from('item_properties')
 			.innerJoin('properties', 'item_properties.property_id', 'properties.id')
 			.where('item_properties.item_id', item.id)
@@ -92,7 +92,7 @@ async function createItem(item) {
 				for (property of item.properties) {
 					await trx('item_properties').insert({
 						item_id: item.id,
-						property_id: property.id,
+						property_id: property.property_id,
 						details: property.details
 					});
 				}
@@ -150,26 +150,96 @@ async function createItem(item) {
 	}
 }
 
-async function listItems(pageNumber = 1, pageSize = 10, searchQuery = "") {
-    // calculate the offset based on the page number and page size
-    const offset = (pageNumber - 1) * pageSize;
-    // get total number of rows that match the search query 
-    const total = await db('items').whereILike('name', '%' + searchQuery + '%').count()
+async function updateItem(item) {
+	// Start a transaction to ensure that all database queries are executed atomically
+	await db.transaction(async trx => {
+		// Insert the item into the 'items' table and return the generated ID
+		await trx('items')
+			.where('items.id', item.id)
+			.update({
+				name: item.name,
+				description: item.description,
+				cost_gp: item.cost_gp,
+				type: item.type,
+				weight_lbs: item.weight_lbs
+			});
 
-    //query the items table based on the search query, limit the number of rows to the page size and offset
-    const items = await db.select().from('items')
-    .whereILike('name', '%' + searchQuery + '%')
-    .limit(pageSize)
-    .offset(offset);
+		// Replace the item's properties into the 'item_properties' table
+		await trx('item_properties').where('item_id', item.id).del();
 
-    //return the items and total
-    return {
-        items,
-        total : total[0].count
-    }
+		let properties_to_add = [];
+
+		if (item.properties) {
+			for (property of item.properties) {
+				properties_to_add.push({item_id: item.id, property_id: property.property_id, details: property.details})
+			}
+		}
+
+		await trx('item_properties').insert(properties_to_add);
+
+		// Insert the item's details into the appropriate table based on the item's type
+		if (item.type == 'Weapon') {
+			await trx('items_weapon').where('id', item.id).update(item.details);
+
+		} else if (item.type == 'Armor') {
+			await trx('items_armor').where('id', item.id).update(item.details);
+
+		} else if (item.type == 'Adventuring Gear') {
+			await trx('items_adventuring_gear').where('id', item.id).update(item.details);
+
+		} else if (item.type == 'Equipment Pack') {
+
+			await trx('items_equipment_packs').where('pack_id', item.id).del();
+
+			let toAdd = [];
+
+			// Create an array of objects with the contents of the equipment pack
+			for (const containedItem of item.details.contents) {
+				toAdd.push({
+					pack_id: item.id,
+					content_id: containedItem.content_id,
+					amount: containedItem.amount
+				})
+			}
+
+			// Insert the contents of the equipment pack into the 'items_equipment_packs' table
+			await trx('items_equipment_packs').insert(toAdd);
+
+		} else if (item.type == 'Tool') {
+			await trx('items_tools').where('id', item.id).update(item.details);
+
+		} else {
+			// Throw an error if the item type is invalid
+			throw 'Invalid item type';
+		}
+	});
+
+	// Retrieve the newly updated item from the database
+	const updatedItem = await getItem(item.id)
+
+	// Return the newly created item
+	return updatedItem;
+
 }
 
+async function listItems(pageNumber = 1, pageSize = 10, searchQuery = "") {
+	// calculate the offset based on the page number and page size
+	const offset = (pageNumber - 1) * pageSize;
+	// get total number of rows that match the search query 
+	const total = await db('items').whereILike('name', '%' + searchQuery + '%').count()
 
+	//query the items table based on the search query, limit the number of rows to the page size and offset
+	const items = await db.select().from('items')
+		.whereILike('name', '%' + searchQuery + '%')
+		.limit(pageSize)
+		.offset(offset);
+
+	//return the items and total
+	return {
+		items,
+		total: total[0].count
+	}
+}
 
 async function listProperties(pageNumber = 1, pageSize = 10) {
 	try {
@@ -224,4 +294,4 @@ async function updateProperty(property) {
 	}
 }
 
-module.exports = { getItem, deleteItem, createItem, listItems, listProperties, getProperty, createProperty, updateProperty }
+module.exports = { getItem, deleteItem, createItem, updateItem,  listItems, listProperties, getProperty, createProperty, updateProperty }
