@@ -171,7 +171,7 @@ async function updateItem(item) {
 
 		if (item.properties) {
 			for (property of item.properties) {
-				properties_to_add.push({item_id: item.id, property_id: property.property_id, details: property.details})
+				properties_to_add.push({ item_id: item.id, property_id: property.property_id, details: property.details })
 			}
 		}
 
@@ -241,14 +241,21 @@ async function listItems(pageNumber = 1, pageSize = 10, searchQuery = "") {
 	}
 }
 
-async function listProperties(pageNumber = 1, pageSize = 10) {
+async function listProperties(pageNumber = 1, pageSize = 10, searchQuery = "") {
 	try {
 		// Calculate the offset based on the page number and page size
 		const offset = (pageNumber - 1) * pageSize;
+
+		// get total number of rows that match the search query 
+		const total = await db('properties').whereILike('name', '%' + searchQuery + '%').count()
+
 		// Query the database, using the offset and limit to implement paging
-		const items = await db.select().from('properties').limit(pageSize).offset(offset);
+		const properties = await db.select().from('properties')
+			.whereILike('name', '%' + searchQuery + '%')
+			.limit(pageSize)
+			.offset(offset);
 		// Return the page of items
-		return items;
+		return { properties, total: total[0].count };
 
 	} catch (error) {
 		throw error;
@@ -294,4 +301,4 @@ async function updateProperty(property) {
 	}
 }
 
-module.exports = { getItem, deleteItem, createItem, updateItem,  listItems, listProperties, getProperty, createProperty, updateProperty }
+module.exports = { getItem, deleteItem, createItem, updateItem, listItems, listProperties, getProperty, createProperty, updateProperty }

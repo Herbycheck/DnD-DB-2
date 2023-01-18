@@ -95,9 +95,10 @@ router.get('/properties/', async function (req, res, next) {
 	// Extract the page and page size from the request query parameters
 	const page = req.query.page || 1;
 	const pageSize = req.query.pageSize || 10;
+	const searchQuery = req.query.search_query;
 
 	try {
-		let properties = await Items.listProperties(page, pageSize)
+		let properties = await Items.listProperties(page, pageSize, searchQuery);
 
 		return res.json(properties)
 	} catch (error) {
