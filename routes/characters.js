@@ -146,4 +146,27 @@ router.post('/proficiencies', async function (req, res, next) {
 
 });
 
+router.get('/proficiencies/id/:id', async function(req, res, next){
+	try {
+		const id = req.params.id;
+
+		if(!uuidRegex.test(id)){
+			return next(createError(400, 'Invalid proficiency id'));
+		}
+
+		const proficiency = await Characters.getProficiency(id);
+
+		if (!proficiency) {
+			return next(createError(404, 'Proficiency not found'));
+		}
+
+		return res.json(proficiency);
+
+	} catch (error) {
+		console.error(error);
+
+		return next(createError(500, 'An error occurred while looking up a proficiency'));
+	}
+})
+
 module.exports = router
