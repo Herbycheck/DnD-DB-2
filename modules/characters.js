@@ -14,7 +14,7 @@ async function getCharacter(id) {
 		.where('characters.id', id)
 		.first();
 
-	if (character == undefined) return next(createError(404));
+	if (character == undefined) throw ("Character not found in database");
 
 	// Combat
 	character.combat = await db.select()
@@ -25,12 +25,25 @@ async function getCharacter(id) {
 	delete character.combat.character_id;
 
 	// Skills
-	character.skills = await db.select()
+	let skills = await db.select()
 		.from('characters_skills')
 		.where('character_id', character.id)
 		.first();
 
-	delete character.skills.character_id;
+	let skill_modifiers = await db.select()
+		.from('characters_skills_modifiers')
+		.where('character_id', character.id)
+		.first();
+
+	character.skills = {
+		Strength: { value: skills.str, modifier: skill_modifiers.str },
+		Dexterity: { value: skills.dex, modifier: skill_modifiers.dex },
+		Condition: { value: skills.con, modifier: skill_modifiers.con },
+		Intelligence: { value: skills.int, modifier: skill_modifiers.int },
+		Wisdom: { value: skills.wis, modifier: skill_modifiers.wis },
+		Charisma: { value: skills.cha, modifier: skill_modifiers.cha }
+	}
+
 
 	// Skill proficiencies
 	character.skill_proficiencies = await db.select()
@@ -253,13 +266,21 @@ async function listTraits(pageNumber = 1, pageSize = 10) {
 	return items;
 }
 
-async function listProficiencies(pageNumber = 1, pageSize = 10) {
+async function listProficiencies(pageNumber = 1, pageSize = 10, searchQuery = "") {
 	// Calculate the offset based on the page number and page size
 	const offset = (pageNumber - 1) * pageSize;
+
+	// get total number of rows that match the search query 
+	const total = await db('proficiencies').whereILike('name', '%' + searchQuery + '%').count()
+
 	// Query the database, using the offset and limit to implement paging
-	const items = await db.select().from('proficiencies').limit(pageSize).offset(offset);
+	const proficiencies = await db.select().from('proficiencies')
+		.whereILike('name', '%' + searchQuery + '%')
+		.limit(pageSize)
+		.offset(offset);
+	
 	// Return the page of items
-	return items;
+	return { proficiencies, total: total[0].count };
 }
 
 async function createProficiency(proficiency) {
