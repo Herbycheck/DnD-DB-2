@@ -71,21 +71,21 @@ async function getCharacter(id) {
 
 
 	// Proficiencies
-	character.proficiencies = await db.select('proficiencies.id', 'proficiencies.name', 'proficiencies.type')
+	character.proficiencies = await db.select('characters_proficiencies.proficiency_id', 'proficiencies.name', 'proficiencies.type')
 		.from('characters_proficiencies')
 		.innerJoin('proficiencies', 'characters_proficiencies.proficiency_id', 'proficiencies.id')
 		.where('character_id', character.id);
 
 
 	// Traits
-	character.traits = await db.select('traits.id', 'traits.name', 'traits.description')
+	character.traits = await db.select('characters_traits.trait_id', 'traits.name', 'traits.description')
 		.from('characters_traits')
 		.innerJoin('traits', 'characters_traits.trait_id', 'traits.id')
 		.where('character_id', character.id);
 
 
 	// Items
-	character.items = await db.select('items.name', 'items.id', 'characters_items.amount', 'characters_items.equipped')
+	character.items = await db.select('items.name', 'characters_items.item_id', 'characters_items.amount', 'characters_items.equipped')
 		.from('characters_items')
 		.innerJoin('items', 'characters_items.item_id', 'items.id')
 		.where('character_id', character.id);
@@ -115,11 +115,29 @@ async function createCharacter(character) {
 			...character.combat
 		});
 
-		// Skills
-		await trx('characters_skills').insert({
+		// Skills and Modifiers
+		let skills = {
 			character_id: character.id,
-			...character.skills
-		});
+			str: character.skills.Strength.value,
+			dex: character.skills.Dexterity.value,
+			con: character.skills.Condition.value,
+			int: character.skills.Intelligence.value,
+			wis: character.skills.Wisdom.value,
+			cha: character.skills.Charisma.value,
+		}
+
+		let skill_modifiers = {
+			character_id: character.id,
+			str: character.skills.Strength.modifier,
+			dex: character.skills.Dexterity.modifier,
+			con: character.skills.Condition.modifier,
+			int: character.skills.Intelligence.modifier,
+			wis: character.skills.Wisdom.modifier,
+			cha: character.skills.Charisma.modifier,
+		}
+
+		await trx('characters_skills').insert(skills);
+		await trx('characters_skills_modifiers').insert(skill_modifiers);
 
 		// Skill proficiencies
 		await trx('characters_skills_proficiencies').insert({
@@ -140,7 +158,7 @@ async function createCharacter(character) {
 		});
 
 		// Proficiencies
-		let proficiencies = character.proficiencies.map(x => ({ ...x, character_id: character.id }));
+		let proficiencies = character.proficiencies.map(x => ({ proficiency_id: x.proficiency_id, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (proficiencies.length) {
@@ -148,7 +166,7 @@ async function createCharacter(character) {
 		}
 
 		// Traits
-		let traits = character.traits.map(x => ({ ...x, character_id: character.id }));
+		let traits = character.traits.map(x => ({ trait_id: x.trait_id, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (traits.length) {
@@ -156,15 +174,15 @@ async function createCharacter(character) {
 		}
 
 		// Items
-		let items = character.items.map(x => ({ ...x, character_id: character.id }));
+		let items = character.items.map(x => ({ item_id: x.item_id, amount: x.amount, equipped: x.equipped, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (items.length) {
 			await trx('characters_items').insert(items);
 		}
-
-		return character;
 	});
+
+	return getCharacter(character.id);
 }
 
 async function updateCharacter(character) {
@@ -188,10 +206,34 @@ async function updateCharacter(character) {
 			.where('characters_combat.character_id', character.id)
 			.update(character.combat);
 
-		// Skills
+		// Skills and Modifiers
+		let skills = {
+			character_id: character.id,
+			str: character.skills.Strength.value,
+			dex: character.skills.Dexterity.value,
+			con: character.skills.Condition.value,
+			int: character.skills.Intelligence.value,
+			wis: character.skills.Wisdom.value,
+			cha: character.skills.Charisma.value,
+		}
+
+		let skill_modifiers = {
+			character_id: character.id,
+			str: character.skills.Strength.modifier,
+			dex: character.skills.Dexterity.modifier,
+			con: character.skills.Condition.modifier,
+			int: character.skills.Intelligence.modifier,
+			wis: character.skills.Wisdom.modifier,
+			cha: character.skills.Charisma.modifier,
+		}
+
 		await trx('characters_skills')
-			.where('characters_skills.character_id', character.id)
-			.update(character.skills);
+			.where('character_id', character.id)
+			.update(skills);
+
+		await trx('characters_skills_modifiers')
+			.where('character_id', character.id)
+			.update(skill_modifiers);
 
 		// Skill proficiencies
 		await trx('characters_skills_proficiencies')
@@ -210,12 +252,11 @@ async function updateCharacter(character) {
 
 
 		// Proficiencies
-
 		await trx('characters_proficiencies')
 			.where('characters_proficiencies.character_id', character.id)
 			.del();
 
-		let proficiencies = character.proficiencies.map(x => ({ ...x, character_id: character.id }));
+		let proficiencies = character.proficiencies.map(x => ({ proficiency_id: x.proficiency_id, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (proficiencies.length) {
@@ -227,7 +268,7 @@ async function updateCharacter(character) {
 			.where('characters_traits.character_id', character.id)
 			.del();
 
-		let traits = character.traits.map(x => ({ ...x, character_id: character.id }));
+		let traits = character.traits.map(x => ({ trait_id: x.trait_id, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (traits.length) {
@@ -239,7 +280,7 @@ async function updateCharacter(character) {
 			.where('characters_items.character_id', character.id)
 			.del();
 
-		let items = character.items.map(x => ({ ...x, character_id: character.id }));
+		let items = character.items.map(x => ({ item_id: x.item_id, amount: x.amount, equipped: x.equipped, character_id: character.id }));
 
 		// only try to insert if the array isn't empty
 		if (items.length) {
@@ -254,7 +295,7 @@ async function updateCharacter(character) {
 async function createTrait(trait) {
 	let newTrait = await db('traits').insert(trait, ["id", "name", "description"])
 
-	return newTrait;
+	return newTrait[0];
 }
 
 async function listTraits(pageNumber = 1, pageSize = 10) {
@@ -268,9 +309,9 @@ async function listTraits(pageNumber = 1, pageSize = 10) {
 
 async function getProficiency(id) {
 	const proficiency = await db.select()
-	.from('proficiencies')
-	.where('id', id)
-	.first();
+		.from('proficiencies')
+		.where('id', id)
+		.first();
 
 	return proficiency;
 }
@@ -287,7 +328,7 @@ async function listProficiencies(pageNumber = 1, pageSize = 10, searchQuery = ""
 		.whereILike('name', '%' + searchQuery + '%')
 		.limit(pageSize)
 		.offset(offset);
-	
+
 	// Return the page of items
 	return { proficiencies, total: total[0].count };
 }
@@ -295,7 +336,7 @@ async function listProficiencies(pageNumber = 1, pageSize = 10, searchQuery = ""
 async function createProficiency(proficiency) {
 	let newTrait = await db('proficiencies').insert(proficiency, ["id", "name", "type"])
 
-	return newTrait;
+	return newTrait[0];
 }
 
 module.exports = { listUserCharacters, getCharacter, updateCharacter, createCharacter, listTraits, createTrait, listProficiencies, getProficiency, createProficiency }
