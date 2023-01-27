@@ -12,6 +12,7 @@ require('dotenv').config()
 const usersRouter = require('./routes/users');
 const itemsRouter = require('./routes/items');
 const charactersRouter = require('./routes/characters');
+const campaignsRouter = require('./routes/campaigns');
 
 const app = express();
 
@@ -38,20 +39,21 @@ app.use((req, res, next) => {
 app.use('/users', usersRouter);
 app.use('/items', itemsRouter);
 app.use('/characters', charactersRouter);
+app.use('/campaigns', campaignsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
-    next(createError(404));
+	next(createError(404));
 });
 
 // error handler
 app.use(function (err, req, res, next) {
-    let message = err.message;
-    let error = req.app.get('env') === 'development' ? err : {};
+	let message = err.message;
+	let error = req.app.get('env') === 'development' ? err : {};
 
-    // render the error page
-    res.status(err.status || 500);
-    res.send({ message: message, error: error });
+	// render the error page
+	res.status(err.status || 500);
+	res.send({ message: message, error: error });
 });
 
 module.exports = app;
