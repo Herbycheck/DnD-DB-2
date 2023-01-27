@@ -24,7 +24,7 @@ router.get('/', async function (req, res, next) {
 
 router.post('/', async function (req, res, next) {
 	try {
-		let item = req.body.item;
+		let item = req.body;
 
 		let newItem = await Items.createItem(item);
 
