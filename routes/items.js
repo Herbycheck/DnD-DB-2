@@ -24,6 +24,8 @@ router.get('/', async function (req, res, next) {
 
 router.post('/', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		let item = req.body;
 
 		let newItem = await Items.createItem(item);
@@ -59,6 +61,8 @@ router.get('/id/:id/', async function (req, res, next) {
 
 router.put('/id/:id', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		let id = req.params.id;
 		if (!id) return next(createError(400, 'No item id specified.'));
 		if (!uuidRegex.test(id)) return next(createError(400, "Invalid item id"));
@@ -75,6 +79,8 @@ router.put('/id/:id', async function (req, res, next) {
 
 router.delete('/id/:id/', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		let id = req.params.id;
 
 		if (!id) return next(createError(400, "No itemId specified"));
@@ -110,6 +116,8 @@ router.get('/properties/', async function (req, res, next) {
 
 router.post('/properties/', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		const property = {
 			name: req.body.name,
 			description: req.body.description
@@ -147,23 +155,24 @@ router.get('/properties/id/:id', async function (req, res, next) {
 });
 
 router.put('/properties/id/:id', async function (req, res, next) {
-	let id = req.params.id == undefined ? null : req.params.id;
-
-	if (id == null) return next(createError(400, "No id specified"));
-
-	if (!uuidRegex.test(id)) return next(createError(400, "Invalid property id"));
-
-	// Create the user object with the updated properties
-	const property = { id: id };
-
-	if (req.body.name) {
-		property.name = req.body.name;
-	}
-	if (req.body.description) {
-		property.description = req.body.description;
-	}
-
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
+		let id = req.params.id == undefined ? null : req.params.id;
+
+		if (id == null) return next(createError(400, "No id specified"));
+
+		if (!uuidRegex.test(id)) return next(createError(400, "Invalid property id"));
+
+		// Create the user object with the updated properties
+		const property = { id: id };
+
+		if (req.body.name) {
+			property.name = req.body.name;
+		}
+		if (req.body.description) {
+			property.description = req.body.description;
+		}
 
 		let updatedProperty = await Items.updateProperty(property)
 
@@ -179,11 +188,14 @@ router.put('/properties/id/:id', async function (req, res, next) {
 })
 
 router.delete('/properties/id/:id', async function (req, res, next) {
-	let propertyId = req.query.id;
-
-	if (propertyId == undefined) return next(createError(400, "No id specified"));
-
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
+		let propertyId = req.query.id;
+
+		if (propertyId == undefined) return next(createError(400, "No id specified"));
+
+
 		await db('properties')
 			.where('id', propertyId)
 			.del();

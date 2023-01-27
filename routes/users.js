@@ -54,6 +54,8 @@ router.get('/id/:id', async function (req, res, next) {
 
 router.patch('/id/:id', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		// Create the user object with the updated properties
 		const user = {};
 		if (req.body.nickname) {
@@ -85,6 +87,8 @@ router.patch('/id/:id', async function (req, res, next) {
 
 router.post('/', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		// Hash the password
 		const password = await bcrypt.hash(req.body.password, 10);
 
@@ -106,8 +110,10 @@ router.post('/', async function (req, res, next) {
 	}
 });
 
-router.delete('/:id', async function (req, res, next) {
+router.delete('/id/:id', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		// Extract the id from the request parameters
 		const id = req.params.id;
 		if (!id) {

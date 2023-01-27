@@ -24,6 +24,9 @@ router.get('/user/:id', async function (req, res, next) {
 
 router.post('/', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
+
 		let character = req.body;
 
 		const newCharacter = await Characters.createCharacter(character);
@@ -67,6 +70,8 @@ router.get('/id/:id', async function (req, res, next) {
 
 router.put('/id/:id', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		let character = req.body;
 
 		let characterId = req.params.id;
@@ -104,6 +109,8 @@ router.get('/traits', async function (req, res, next) {
 
 router.post('/traits', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		const newTrait = await Characters.createTrait(req.body);
 
 		res.json(newTrait);
@@ -134,6 +141,8 @@ router.get('/proficiencies', async function (req, res, next) {
 
 router.post('/proficiencies', async function (req, res, next) {
 	try {
+		if (!req.decoded) return next(createError(401, 'Not logged in'));
+
 		const newProficiency = await Characters.createProficiency(req.body);
 
 		res.json(newProficiency);
@@ -146,11 +155,11 @@ router.post('/proficiencies', async function (req, res, next) {
 
 });
 
-router.get('/proficiencies/id/:id', async function(req, res, next){
+router.get('/proficiencies/id/:id', async function (req, res, next) {
 	try {
 		const id = req.params.id;
 
-		if(!uuidRegex.test(id)){
+		if (!uuidRegex.test(id)) {
 			return next(createError(400, 'Invalid proficiency id'));
 		}
 
