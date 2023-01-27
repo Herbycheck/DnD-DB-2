@@ -1,5 +1,7 @@
 const { db } = require("./db");
 
+const bcrypt = require('bcrypt');
+
 async function getUser(id) {
 	try {
 		// Get the user in the database
@@ -76,5 +78,19 @@ async function listUsers(page, pageSize) {
 	}
 }
 
+async function login(username, password) {
+	const user = await db.select().from('users').where('nickname', username).first();
 
-module.exports = {getUser, updateUser, createUser, deleteUser, listUsers }
+	if (!user) return false;
+
+	const match = await bcrypt.compare(password, user.password);
+
+	if (match) {
+		return user;
+	} else {
+		return false;
+	}
+
+}
+
+module.exports = { getUser, updateUser, createUser, deleteUser, listUsers, login }

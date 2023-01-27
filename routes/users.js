@@ -2,6 +2,7 @@ const createError = require('http-errors');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
 
 const Users = require('../modules/users');
 
@@ -26,7 +27,7 @@ router.get('/', async function (req, res, next) {
 });
 
 
-router.get('/:id', async function (req, res, next) {
+router.get('/id/:id', async function (req, res, next) {
 	try {
 		// Validate the 'id' route parameter
 		if (!uuidRegex.test(req.params.id)) {
@@ -51,7 +52,7 @@ router.get('/:id', async function (req, res, next) {
 });
 
 
-router.patch('/:id', async function (req, res, next) {
+router.patch('/id/:id', async function (req, res, next) {
 	try {
 		// Create the user object with the updated properties
 		const user = {};
@@ -128,6 +129,39 @@ router.delete('/:id', async function (req, res, next) {
 		console.error(error);
 		return next(createError(500, 'An error occurred while trying to delete the user'));
 	}
+});
+
+router.post('/login', async function (req, res, next) {
+	try {
+		// check for user credentials
+		const user = await Users.login(req.body.username, req.body.password);
+
+		if (!user) return (403, "Invalid username or password")
+
+		// generate a JWT with an expiration time of 1 hour
+		const token = jwt.sign({ id: user.id, name: user.nickname, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+		// generate a refresh token with an expiration time of 7 days
+		const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+		res.json({ token, refreshToken });
+	} catch (error) {
+		console.error(error);
+		return next(createError(500, "An error occurred while trying to log in"));
+	}
+
+});
+
+router.post('/refresh-token', async function (req, res) {
+	const { refreshToken } = req.body;
+
+	jwt.verify(refreshToken, process.env.JWT_SECRET, async (err, decoded) => {
+		if (err) return next(createError(401, 'Invalid refresh token'));
+
+		const user = await Users.getUser(decoded.id);
+
+		const token = jwt.sign({ name: user.nickname, id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+		res.json({ token });
+	});
 });
 
 module.exports = router;

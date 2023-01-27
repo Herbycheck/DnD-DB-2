@@ -5,6 +5,9 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const jwt = require('jsonwebtoken');
+
+require('dotenv').config()
 
 const usersRouter = require('./routes/users');
 const itemsRouter = require('./routes/items');
@@ -21,6 +24,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // parse requests of content-type - application/json
 app.use(bodyParser.json());
+
+app.use((req, res, next) => {
+	const token = req.headers.authorization;
+	if (!token || token.split(' ')[1] == 'undefined') return next();
+	jwt.verify(token.split(' ')[1], process.env.JWT_SECRET, (err, decoded) => {
+		if (err) return res.status(401).json({ message: 'Token expired' });
+		req.decoded = decoded;
+		next();
+	});
+});
 
 app.use('/users', usersRouter);
 app.use('/items', itemsRouter);
