@@ -57,7 +57,7 @@ router.patch('/id/:id', async function (req, res, next) {
 		if (!req.decoded) return next(createError(401, 'Not logged in'));
 
 		// Create the user object with the updated properties
-		const user = {};
+		let user = {};
 		if (req.body.nickname) {
 			user.nickname = req.body.nickname;
 		}
@@ -66,6 +66,9 @@ router.patch('/id/:id', async function (req, res, next) {
 		}
 		if (req.body.password) {
 			user.password = await bcrypt.hash(req.body.password, 10);
+		}
+		if (req.body.role) {
+			user.role = req.body.role;
 		}
 
 		// Update the user in the database
@@ -142,7 +145,7 @@ router.post('/login', async function (req, res, next) {
 		// check for user credentials
 		const user = await Users.login(req.body.username, req.body.password);
 
-		if (!user) return (403, "Invalid username or password")
+		if (!user) return next(createError(403, "Invalid username or password"));
 
 		// generate a JWT with an expiration time of 1 hour
 		const token = jwt.sign({ id: user.id, name: user.nickname, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });

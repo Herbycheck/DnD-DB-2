@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 async function getUser(id) {
 	try {
 		// Get the user in the database
-		let user = await db.select('id', 'nickname', 'email')
+		let user = await db.select('id', 'name', 'email', 'role')
 			.from('users')
 			.where('users.id', id)
 			.first();
@@ -23,7 +23,7 @@ async function updateUser(id, user) {
 		// Update the user in the database
 		const updatedUser = await db('users')
 			.where({ id })
-			.update(user, ['id', 'nickname', 'email']);
+			.update(user, ['id', 'name', 'email', 'role']);
 
 		// Return the updated user data
 		return updatedUser;
@@ -34,12 +34,16 @@ async function updateUser(id, user) {
 
 
 async function createUser(newUser) {
-
 	try {
 		// Insert the new user into the database
-		let user = await db
-			.insert({ nickname: newUser.nickname, password: newUser.password, email: newUser.email }, ["id", "nickname", "email"])
-			.into('users');
+		let user = await db('users')
+			.insert({
+				name: newUser.name,
+				password: newUser.password,
+				email: newUser.email,
+				role: newUser.role
+			},
+				["id", "name", "email", "role"]);
 
 		// Return the newly created user
 		return user[0];
@@ -68,7 +72,7 @@ async function listUsers(page, pageSize) {
 
 		// Query the database for the specified page of users
 		const users = await db('users')
-			.select('id', 'nickname', 'email')
+			.select('id', 'name', 'email', 'role')
 			.limit(pageSize)
 			.offset(offset);
 
@@ -79,7 +83,7 @@ async function listUsers(page, pageSize) {
 }
 
 async function login(username, password) {
-	const user = await db.select().from('users').where('nickname', username).first();
+	const user = await db.select().from('users').where('name', username).first();
 
 	if (!user) return false;
 
