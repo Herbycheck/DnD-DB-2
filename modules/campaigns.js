@@ -43,8 +43,7 @@ async function getUserCampaigns(user_id) {
 	const campaigns = await db.select('campaigns.id', 'campaigns.name', 'campaigns_users.role', 'campaigns.created_at')
 		.from('campaigns')
 		.innerJoin('campaigns_users', 'id', 'campaign_id')
-		.where('user_id', user_id)
-		.orWhere('owner_id', user_id);
+		.where('user_id', user_id);
 
 	return campaigns;
 }
