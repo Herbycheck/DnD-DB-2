@@ -34,7 +34,6 @@ router.get('/my', async function (req, res, next) {
 	}
 });
 
-
 router.get('/id/:id', async function (req, res, next) {
 	try {
 		let id = req.params.id;
@@ -50,5 +49,35 @@ router.get('/id/:id', async function (req, res, next) {
 		return next(createError(500, 'An error occurred while trying to look up a campaign'));
 	}
 });
+
+router.post('/id/:id/join', async function (req, res, next) {
+	try {
+		if (!req.decoded) return next(createError(403, 'Not logged in.'));
+
+		const user_id = req.decoded.id;
+		const campaign_id = req.params.id;
+		const character_id = req.body.character_id
+		const password = req.body.password;
+
+		if (!character_id) {
+			return next(createError(400, 'No character id specified'));
+		}
+
+		const campaign = await Campaigns.joinCampaign(campaign_id, user_id, character_id, password);
+
+		return res.json(campaign);
+
+	} catch (error) {
+
+		if (error == 'Campaign not found' ||
+			error == 'User does not exist' ||
+			error == 'User already in campaign' ||
+			error == 'User is not the owner of the character'
+		) return next(createError(500, error));
+
+		console.log(error);
+		return next(createError(500, 'An error occurred while joining a campaign.'));
+	}
+})
 
 module.exports = router
