@@ -23,7 +23,7 @@ async function createCampaign(name, maxPlayers, ownerId, password) {
 }
 
 async function getCampaign(campaign_id) {
-	const campaign = await db.select()
+	const campaign = await db.select('id', 'name', 'owner_id', 'created_at', 'max_players', 'notes', 'archived')
 		.from('campaigns')
 		.where('id', campaign_id)
 		.first();
