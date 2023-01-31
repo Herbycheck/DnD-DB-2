@@ -1,11 +1,25 @@
 const { db } = require("./db"); // Knex db
 
-async function listUserCharacters(ownerId) {
+async function listUserCharacters(ownerId, pageNumber = 1, pageSize = 10, searchQuery = "") {
+	// calculate the offset based on the page number and page size
+	const offset = (pageNumber - 1) * pageSize;
+	// get total number of rows that match the search query 
+	const total = await db('characters')
+		.where('characters.owner_id', ownerId)
+		.andWhereILike('name', '%' + searchQuery + '%')
+		.count();
+
 	const characters = await db.select()
 		.from('characters')
-		.where('characters.owner_id', ownerId);
+		.where('owner_id', ownerId)
+		.andWhereILike('name', '%' + searchQuery + '%')
+		.limit(pageSize)
+		.offset(offset);
 
-	return characters;
+	return {
+		characters,
+		total: total[0].count
+	};
 }
 
 async function getCharacter(id) {

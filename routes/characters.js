@@ -10,9 +10,14 @@ router.get('/my', async function (req, res, next) {
 	try {
 		if (!req.decoded) return next(createError(403, 'Not logged in'));
 
+		// Extract the page and page size from the request query parameters
+		const page = req.query.page || 1;
+		const pageSize = req.query.pageSize || 10;
+		const searchQuery = req.query.search_query;
+
 		const ownerId = req.decoded.id;
 
-		const characters = await Characters.listUserCharacters(ownerId);
+		const characters = await Characters.listUserCharacters(ownerId, page, pageSize, searchQuery);
 
 		return res.json(characters);
 

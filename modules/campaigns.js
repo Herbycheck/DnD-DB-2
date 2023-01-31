@@ -39,13 +39,27 @@ async function getCampaign(campaign_id) {
 	return campaign;
 }
 
-async function getUserCampaigns(user_id) {
+async function getUserCampaigns(user_id, pageNumber = 1, pageSize = 10, searchQuery = "") {
+
+	// calculate the offset based on the page number and page size
+	const offset = (pageNumber - 1) * pageSize;
+	// get total number of rows that match the search query 
+	const total = await db('campaigns')
+		.innerJoin('campaigns_users', 'id', 'campaign_id')
+		.where('user_id', user_id)
+		.andWhereILike('name', '%' + searchQuery + '%')
+		.count();
+
+
 	const campaigns = await db.select('campaigns.id', 'campaigns.name', 'campaigns_users.role', 'campaigns.created_at')
 		.from('campaigns')
 		.innerJoin('campaigns_users', 'id', 'campaign_id')
-		.where('user_id', user_id);
+		.where('user_id', user_id)
+		.andWhereILike('name', '%' + searchQuery + '%')
+		.limit(pageSize)
+		.offset(offset);
 
-	return campaigns;
+	return { campaigns, total: total[0].count };
 }
 
 async function joinCampaign(campaign_id, user_id, character_id, password) {

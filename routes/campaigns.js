@@ -24,7 +24,12 @@ router.get('/my', async function (req, res, next) {
 	try {
 		if (!req.decoded) return next(createError(401, 'Not logged in'));
 
-		const campaigns = await Campaigns.getUserCampaigns(req.decoded.id);
+		// Extract the page and page size from the request query parameters
+		const page = req.query.page || 1;
+		const pageSize = req.query.pageSize || 10;
+		const searchQuery = req.query.search_query;
+
+		const campaigns = await Campaigns.getUserCampaigns(req.decoded.id, page, pageSize, searchQuery);
 
 		return res.json(campaigns);
 
