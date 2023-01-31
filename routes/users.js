@@ -96,7 +96,7 @@ router.post('/', async function (req, res, next) {
 		const password = await bcrypt.hash(req.body.password, 10);
 
 		// Create the new user object
-		const newUser = { nickname: req.body.nickname, email: req.body.nickname, password };
+		let newUser = { name: req.body.name, email: req.body.email, password: password, role: req.body.role };
 
 		// Create the user in the database
 		const user = await Users.createUser(newUser);
