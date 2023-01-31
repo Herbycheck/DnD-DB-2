@@ -6,13 +6,12 @@ const Characters = require('../modules/characters');
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-router.get('/user/:id', async function (req, res, next) {
+router.get('/my', async function (req, res, next) {
 	try {
-		const ownerId = req.params.id;
+		if (!req.decoded) return next(createError(403, 'Not logged in'));
 
-		if (!uuidRegex.test(ownerId)) {
-			return next(createError(400, 'Invalid user id'));
-		}
+		const ownerId = req.decoded.id;
+
 		const characters = await Characters.listUserCharacters(ownerId);
 
 		return res.json(characters);
