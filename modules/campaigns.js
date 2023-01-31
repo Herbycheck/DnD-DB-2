@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 async function createCampaign(name, maxPlayers, ownerId, password) {
 
-	const hashedPassword = await bcrypt.hash(password, 10);
+	const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
 	const campaign = await db('campaigns').insert({
 		name: name,
