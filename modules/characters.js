@@ -306,6 +306,15 @@ async function updateCharacter(character) {
 
 }
 
+async function getTrait(id) {
+	const trait = await db.select()
+		.from('traits')
+		.where('id', id)
+		.first();
+
+	return trait;
+}
+
 async function createTrait(trait) {
 	let newTrait = await db('traits').insert(trait, ["id", "name", "description"])
 
@@ -361,4 +370,4 @@ async function createProficiency(proficiency) {
 	return newTrait[0];
 }
 
-module.exports = { listUserCharacters, getCharacter, updateCharacter, createCharacter, listTraits, createTrait, listProficiencies, getProficiency, createProficiency }
+module.exports = { listUserCharacters, getCharacter, updateCharacter, createCharacter, listTraits, createTrait, listProficiencies, getProficiency, createProficiency, getTrait }

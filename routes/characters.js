@@ -128,6 +128,20 @@ router.post('/traits', async function (req, res, next) {
 
 });
 
+router.get('/traits/id/:id', async function (req, res, next) {
+	try {
+		const trait = await Characters.getTrait(req.params.id);
+
+		if (!trait) return next(createError(404, "Trait not found"));
+
+		return res.json(trait);
+
+	} catch (error) {
+		console.error(error);
+		return next(createError(500, "An error occurred while getting a trait"));
+	}
+});
+
 router.get('/proficiencies', async function (req, res, next) {
 	// Extract the page and page size from the request query parameters
 	const page = req.query.page || 1;
