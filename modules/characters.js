@@ -312,13 +312,21 @@ async function createTrait(trait) {
 	return newTrait[0];
 }
 
-async function listTraits(pageNumber = 1, pageSize = 10) {
+async function listTraits(pageNumber = 1, pageSize = 10, searchQuery = "") {
 	// Calculate the offset based on the page number and page size
 	const offset = (pageNumber - 1) * pageSize;
+
+	// get total number of rows that match the search query 
+	const total = await db('traits').whereILike('name', '%' + searchQuery + '%').count()
+
 	// Query the database, using the offset and limit to implement paging
-	const items = await db.select().from('traits').limit(pageSize).offset(offset);
+	const traits = await db.select().from('traits')
+		.whereILike('name', '%' + searchQuery + '%')
+		.limit(pageSize)
+		.offset(offset);
+
 	// Return the page of items
-	return items;
+	return { traits, total: total[0].count };
 }
 
 async function getProficiency(id) {
