@@ -148,7 +148,7 @@ router.post('/login', async function (req, res, next) {
 		if (!user) return next(createError(403, "Invalid username or password"));
 
 		// generate a JWT with an expiration time of 1 hour
-		const token = jwt.sign({ id: user.id, name: user.nickname, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+		const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 		// generate a refresh token with an expiration time of 7 days
 		const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -168,7 +168,7 @@ router.post('/refresh-token', async function (req, res) {
 
 		const user = await Users.getUser(decoded.id);
 
-		const token = jwt.sign({ name: user.nickname, id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+		const token = jwt.sign({ name: user.name, id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 		res.json({ token });
 	});
 });
