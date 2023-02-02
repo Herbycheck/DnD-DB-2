@@ -90,6 +90,7 @@ async function joinCampaign(campaign_id, user_id, character_id, password) {
 	const in_campaign = await db.select()
 		.from('campaigns_users')
 		.where('user_id', user_id)
+		.andWhere('campaign_id', campaign.id)
 		.first();
 
 	if (in_campaign) throw new Error('User already in campaign');
