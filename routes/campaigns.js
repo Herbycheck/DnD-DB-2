@@ -74,10 +74,10 @@ router.post('/id/:id/join', async function (req, res, next) {
 
 	} catch (error) {
 
-		if (error == 'Campaign not found' ||
-			error == 'User does not exist' ||
-			error == 'User already in campaign' ||
-			error == 'User is not the owner of the character'
+		if (error.message == 'Campaign not found' ||
+			error.message == 'User does not exist' ||
+			error.message == 'User already in campaign' ||
+			error.message == 'User is not the owner of the character'
 		) return next(createError(500, error));
 
 		console.log(error);
