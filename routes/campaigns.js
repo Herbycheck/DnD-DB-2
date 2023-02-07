@@ -85,4 +85,24 @@ router.post('/id/:id/join', async function (req, res, next) {
 	}
 })
 
+router.delete('/id/:id/', async function (req, res, next) {
+	try {
+		if (!req.decoded) return next(createError(403, 'Not logged in.'));
+
+		const campaign = await Campaigns.getCampaign(req.params.id);
+
+		if (!campaign) return next(createError(404, 'Campaign not found'));
+
+		if (campaign.owner_id != req.decoded.id) return next(createError(403, 'User is not the owner of the campaign'));
+
+		await Campaigns.deleteCampaign(req.params.id);
+
+		return res.json({message: "Campaign deleted"});
+
+	} catch (error) {
+		console.error(error);
+		return next(createError(500, 'An error occurred while trying to delete a campaign'));
+	}
+})
+
 module.exports = router

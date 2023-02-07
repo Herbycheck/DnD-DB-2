@@ -131,4 +131,12 @@ async function joinCampaign(campaign_id, user_id, character_id, password) {
 	return getCampaign(campaign_id);
 }
 
-module.exports = { createCampaign, getCampaign, getUserCampaigns, joinCampaign };
+async function deleteCampaign(campaign_id) {
+	const campaign = db('campaigns')
+		.where('id', campaign_id)
+		.del(['name', 'id']);
+
+	return campaign;
+}
+
+module.exports = { createCampaign, getCampaign, getUserCampaigns, joinCampaign, deleteCampaign };
