@@ -59,6 +59,22 @@ async function getUserCampaigns(user_id, pageNumber = 1, pageSize = 10, searchQu
 		.limit(pageSize)
 		.offset(offset);
 
+	// Get the number of users in each campaign
+	const campaignUserCount = await db('campaigns_users')
+		.select('campaign_id')
+		.count()
+		.groupBy('campaign_id');
+
+	// Add the number of users to each campaign object
+	for (let campaign of campaigns) {
+		const campaignUserCountRecord = campaignUserCount.find(
+			item => item.campaign_id === campaign.id
+		);
+		campaign.userCount = campaignUserCountRecord
+			? campaignUserCountRecord.count
+			: 0;
+	}
+
 	return { campaigns, total: total[0].count };
 }
 
